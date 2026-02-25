@@ -191,7 +191,7 @@ SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "meal-photos")
 # ---------------------------------------------------------------------------
 # USDA FoodData Central
 # ---------------------------------------------------------------------------
-FDC_API_KEY = os.environ.get("FDC_API_KEY", "DEMO_KEY")
+FDC_API_KEY = os.environ.get("FDC_API_KEY", "qio98mObvRnnCgrcaRkq3snrdQhBQQCqlq5ev0U6")
 
 # ---------------------------------------------------------------------------
 # ML model identifier loaded at worker startup (see core/apps.py)
