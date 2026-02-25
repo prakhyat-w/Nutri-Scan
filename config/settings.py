@@ -181,9 +181,12 @@ FDC_API_KEY = os.environ.get("FDC_API_KEY", "DEMO_KEY")
 
 # ---------------------------------------------------------------------------
 # ML model identifier loaded at worker startup (see core/apps.py)
+# BLIP (Bootstrapping Language-Image Pre-training) generates open-ended
+# captions like "grilled chicken with broccoli and rice", which are then
+# parsed into individual food items for multi-item USDA lookup.
 # ---------------------------------------------------------------------------
-ML_MODEL_ID = "skylord/swin-finetuned-food101"
-ML_TOP_K = 3  # number of predictions returned per image
+ML_MODEL_ID = "Salesforce/blip-image-captioning-base"
+ML_MAX_FOOD_ITEMS = 5  # max number of foods to extract from a single caption
 
 # ---------------------------------------------------------------------------
 # Default primary key field type

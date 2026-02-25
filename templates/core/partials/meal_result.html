@@ -4,15 +4,23 @@
 
   <div class="flex items-start gap-4">
     {% if meal.image_url %}
-    <img src="{{ meal.image_url }}" alt="{{ meal.detected_food }}"
+    <img src="{{ meal.image_url }}" alt="meal photo"
          class="h-20 w-20 rounded-lg object-cover flex-shrink-0 border border-slate-700" />
     {% endif %}
     <div class="flex-1 min-w-0">
-      <p class="text-brand font-semibold text-lg capitalize">{{ meal.detected_food }}</p>
-      <p class="text-slate-400 text-xs mt-0.5">
-        Confidence: {{ meal.confidence|floatformat:0 }}% ·
-        {{ meal.logged_at|date:"M j, g:i A" }}
+      <!-- BLIP generates a full natural-language caption -->
+      <p class="text-brand font-semibold text-lg leading-snug">
+        {{ meal.detected_food|capfirst }}
       </p>
+      {% if meal.raw_nutrition_data.foods_detected %}
+      <p class="text-slate-400 text-xs mt-1">
+        Identified:
+        {% for food in meal.raw_nutrition_data.foods_detected %}
+          <span class="inline-block bg-slate-700 rounded px-1.5 py-0.5 mr-1 mb-1">{{ food }}</span>
+        {% endfor %}
+      </p>
+      {% endif %}
+      <p class="text-slate-500 text-xs mt-1">{{ meal.logged_at|date:"M j, g:i A" }}</p>
     </div>
   </div>
 
@@ -42,8 +50,8 @@
     {% endwith %}
   </div>
   {% else %}
-  <p class="text-slate-500 text-sm">Nutrition data not found in USDA database for this item.</p>
+  <p class="text-slate-500 text-sm">Nutrition data not found in USDA database for any detected item.</p>
   {% endif %}
 
-  <p class="text-xs text-slate-500">Nutritional values are per 100 g from the USDA FoodData Central database.</p>
+  <p class="text-xs text-slate-500">Totals summed across all detected foods using USDA FoodData Central (values are estimates).</p>
 </div>

@@ -2,11 +2,15 @@
 Background tasks — run in a daemon thread so the upload HTTP response
 returns immediately while ML inference + USDA lookup happen asynchronously.
 
-Flow:
+Flow (BLIP 2-stage pipeline):
   1. View uploads image to Supabase Storage.
   2. View creates MealLog(status=PROCESSING) and saves to DB.
   3. View spawns a thread running ``analyse_meal(meal_id, tmp_image_path)``.
-  4. Thread runs ML → USDA → updates MealLog(status=DONE) or (status=ERROR).
+  4. Thread runs:
+       a. BLIP caption  →  "grilled chicken with broccoli and rice"
+       b. extract_food_items()  →  ["grilled chicken", "broccoli", "rice"]
+       c. USDA lookup for each food item
+       d. Sum all macros  →  save totals to MealLog(status=DONE)
   5. Frontend polls /api/meal/<id>/status/ via HTMX every 2 seconds.
 """
 
@@ -20,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def analyse_meal(meal_id: int, image_path: str) -> None:
-    """Classify a meal photo and fetch nutrition data, then save to DB.
+    """Caption a meal photo, extract foods, fetch nutrition, then save to DB.
 
     Designed to run in a daemon thread.  All Django ORM calls use
     ``django.db.close_old_connections()`` to avoid "connection already
@@ -29,7 +33,6 @@ def analyse_meal(meal_id: int, image_path: str) -> None:
     import django
     from django.db import close_old_connections
 
-    # Ensure Django setup is complete (important when called from a thread).
     if not django.conf.settings.configured:
         django.setup()
 
@@ -43,33 +46,49 @@ def analyse_meal(meal_id: int, image_path: str) -> None:
         meal.status = MealLog.Status.PROCESSING
         meal.save(update_fields=["status"])
 
-        # --- Step 1: ML classification ---
-        predictions = ml.classify_image(image_path)
-        if not predictions:
-            raise ValueError("Model returned no predictions.")
+        # ── Step 1: BLIP captioning ───────────────────────────────────────
+        caption = ml.caption_image(image_path)
 
-        top = predictions[0]
-        food_label = top["label"]
-        confidence = float(top["score"])
+        # ── Step 2: Parse caption → food item list ────────────────────────
+        food_items = ml.extract_food_items(caption)
+        logger.info("analyse_meal(%d): foods extracted → %s", meal_id, food_items)
 
-        # --- Step 2: Nutrition lookup ---
-        nutrition = usda.get_nutrition(food_label)
+        # ── Step 3: USDA lookup for each food item ────────────────────────
+        nutrition_results: list[dict] = []
+        for item in food_items:
+            info = usda.get_nutrition(item)
+            if info:
+                info["queried_as"] = item
+                nutrition_results.append(info)
+                logger.info("  USDA hit: %s → %s kcal", item, info.get("calories"))
+            else:
+                logger.warning("  USDA miss: no result for '%s'", item)
 
-        # --- Step 3: Persist results ---
-        meal.detected_food = food_label
-        meal.confidence = confidence
+        # ── Step 4: Sum macros across all identified foods ─────────────────
+        def _sum(key: str) -> float | None:
+            vals = [r[key] for r in nutrition_results if r.get(key) is not None]
+            return round(sum(vals), 1) if vals else None
+
+        # ── Step 5: Persist results ───────────────────────────────────────
+        meal.detected_food = caption[:200]   # full BLIP caption (200 char field)
+        meal.confidence = None               # BLIP has no classifier confidence
+        meal.calories = _sum("calories")
+        meal.protein_g = _sum("protein_g")
+        meal.carbs_g = _sum("carbs_g")
+        meal.fat_g = _sum("fat_g")
+        meal.fiber_g = _sum("fiber_g")
+        meal.raw_nutrition_data = {
+            "caption": caption,
+            "foods_detected": food_items,
+            "usda_results": nutrition_results,
+        }
         meal.status = MealLog.Status.DONE
-
-        if nutrition:
-            meal.calories = nutrition.get("calories")
-            meal.protein_g = nutrition.get("protein_g")
-            meal.carbs_g = nutrition.get("carbs_g")
-            meal.fat_g = nutrition.get("fat_g")
-            meal.fiber_g = nutrition.get("fiber_g")
-            meal.raw_nutrition_data = nutrition.get("raw", {})
-
         meal.save()
-        logger.info("analyse_meal(%d): done — %s (%.1f%%)", meal_id, food_label, confidence * 100)
+
+        logger.info(
+            "analyse_meal(%d): done — caption=%r | items=%s | cal=%s",
+            meal_id, caption, food_items, meal.calories,
+        )
 
     except MealLog.DoesNotExist:
         logger.error("analyse_meal: MealLog %d not found.", meal_id)
@@ -84,7 +103,6 @@ def analyse_meal(meal_id: int, image_path: str) -> None:
             pass
     finally:
         close_old_connections()
-        # Clean up the temporary image file
         if os.path.exists(image_path):
             os.remove(image_path)
 

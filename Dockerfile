@@ -25,11 +25,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 # Pre-download the ML model into the image so the first request isn't slow.
+# BLIP (blip-image-captioning-base) generates open-ended food captions.
 # The model is cached at /app/model_cache by setting HF_HOME.
 ENV HF_HOME=/app/model_cache
 RUN python -c "\
 from transformers import pipeline; \
-pipeline('image-classification', model='skylord/swin-finetuned-food101')"
+pipeline('image-to-text', model='Salesforce/blip-image-captioning-base')"
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
