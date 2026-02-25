@@ -8,19 +8,18 @@ class CoreConfig(AppConfig):
     def ready(self):
         """Pre-load the BLIP captioning model when the Django process starts.
 
-        This runs once per gunicorn worker. Loading the ~1 GB BLIP model
-        at startup (rather than on the first request) keeps per-request
-        latency predictable on the HuggingFace Spaces CPU.
+        Model loading runs in a background daemon thread so gunicorn workers
+        start accepting requests immediately — avoiding the worker timeout that
+        causes infinite "Restarting" on HuggingFace Spaces.
         """
-        # Guard: only load in the main server process, not during management
-        # commands like `migrate` or `collectstatic`.
         import sys
 
         _skip_commands = {"migrate", "collectstatic", "makemigrations", "shell"}
         if len(sys.argv) > 1 and sys.argv[1] in _skip_commands:
             return
 
-        # Lazy import so the module is not evaluated before Django is ready.
-        from core import ml  # noqa: F401
+        import threading
+        from core import ml
 
-        ml.load_model()
+        t = threading.Thread(target=ml.load_model, daemon=True, name="ml-preload")
+        t.start()

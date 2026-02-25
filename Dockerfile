@@ -21,16 +21,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy project source
-COPY . .
-
-# Pre-download the ML model into the image so the first request isn't slow.
-# BLIP (blip-image-captioning-base) generates open-ended food captions.
-# The model is cached at /app/model_cache by setting HF_HOME.
+# Pre-download the BLIP model BEFORE copying source code.
+# Keeping this layer before `COPY . .` means it is cached by Docker and will
+# NOT re-download on every source-code push — only when requirements change.
 ENV HF_HOME=/app/model_cache
 RUN python -c "\
 from transformers import pipeline; \
 pipeline('image-to-text', model='Salesforce/blip-image-captioning-base')"
+
+# Copy project source
+COPY . .
 
 # Collect static files
 RUN python manage.py collectstatic --noinput
@@ -42,9 +42,10 @@ USER appuser
 # HuggingFace Spaces expects port 7860
 EXPOSE 7860
 
-# Run gunicorn; 2 workers is plenty for <100 users on a 16 GB RAM Space
+# 1 worker: BLIP needs ~1 GB RAM; 2 workers risk OOM and doubled startup time.
+# 300 s timeout: loading BLIP on CPU takes 60-120 s — default 30 s kills the worker.
 CMD ["gunicorn", "config.wsgi:application", \
      "--bind", "0.0.0.0:7860", \
-     "--workers", "2", \
-     "--timeout", "120", \
+     "--workers", "1", \
+     "--timeout", "300", \
      "--access-logfile", "-"]
