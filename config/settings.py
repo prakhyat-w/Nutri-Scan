@@ -49,6 +49,12 @@ CSRF_TRUSTED_ORIGINS += [
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SECURE = True      # SameSite=None requires Secure
 
+# Session cookie must also be SameSite=None; Secure — otherwise the browser
+# blocks it in the HF iframe and every page load looks like a logged-out user,
+# causing an infinite login → dashboard → login redirect loop.
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+
 # ---------------------------------------------------------------------------
 # Installed apps
 # ---------------------------------------------------------------------------
