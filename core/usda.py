@@ -39,20 +39,13 @@ def search_food(query: str, page_size: int = 5) -> list:
     if the request fails.
     """
     try:
-        # dataType must be passed as repeated tuple params — passing a Python
-        # list causes requests to encode it as dataType%5B%5D=... which the
-        # USDA API rejects with HTTP 400.
-        params = [
-            ("query", query),
-            ("api_key", settings.FDC_API_KEY),
-            ("dataType", "Foundation"),
-            ("dataType", "SR Legacy"),
-            ("dataType", "Survey (FNDDS)"),
-            ("pageSize", page_size),
-        ]
         resp = requests.get(
             f"{_BASE_URL}/foods/search",
-            params=params,
+            params={
+                "query": query,
+                "api_key": settings.FDC_API_KEY,
+                "pageSize": page_size,
+            },
             timeout=10,
         )
         resp.raise_for_status()
