@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Sign In — NutriScan{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+  <div class="w-full max-w-sm">
+    <h1 class="text-2xl font-bold mb-6 text-center">Sign in to NutriScan</h1>
+
+    <form method="post" class="space-y-4 rounded-2xl bg-slate-900 border border-slate-800 p-8">
+      {% csrf_token %}
+
+      {% if form.errors %}
+      <div class="rounded-lg bg-red-950 border border-red-800 px-4 py-3 text-sm text-red-300">
+        Invalid username or password. Please try again.
+      </div>
+      {% endif %}
+
+      <div>
+        <label class="block text-sm text-slate-400 mb-1" for="id_username">Username</label>
+        <input id="id_username" name="username" type="text" autocomplete="username" required
+               class="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand" />
+      </div>
+
+      <div>
+        <label class="block text-sm text-slate-400 mb-1" for="id_password">Password</label>
+        <input id="id_password" name="password" type="password" autocomplete="current-password" required
+               class="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand" />
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}" />
+
+      <button type="submit"
+              class="w-full rounded-xl bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark transition">
+        Sign in
+      </button>
+    </form>
+
+    <p class="mt-4 text-center text-sm text-slate-500">
+      Don't have an account?
+      <a href="{% url 'register' %}" class="text-brand hover:underline">Sign up free</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

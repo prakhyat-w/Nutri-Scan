@@ -1,0 +1,34 @@
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+.tox/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Local dev DB
+db.sqlite3
+
+# Collected static
+staticfiles/
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+
+# Model cache (large; baked into Docker image)
+model_cache/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage

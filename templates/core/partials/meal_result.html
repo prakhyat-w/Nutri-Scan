@@ -1,0 +1,49 @@
+<!-- Shown when analysis is complete -->
+<div id="meal-{{ meal.id }}-status"
+     class="rounded-xl bg-slate-800 border border-green-800 p-5 space-y-4">
+
+  <div class="flex items-start gap-4">
+    {% if meal.image_url %}
+    <img src="{{ meal.image_url }}" alt="{{ meal.detected_food }}"
+         class="h-20 w-20 rounded-lg object-cover flex-shrink-0 border border-slate-700" />
+    {% endif %}
+    <div class="flex-1 min-w-0">
+      <p class="text-brand font-semibold text-lg capitalize">{{ meal.detected_food }}</p>
+      <p class="text-slate-400 text-xs mt-0.5">
+        Confidence: {{ meal.confidence|floatformat:0 }}% ·
+        {{ meal.logged_at|date:"M j, g:i A" }}
+      </p>
+    </div>
+  </div>
+
+  {% if meal.macros_available %}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+    {% with macros=meal %}
+    <div class="rounded-lg bg-slate-900 p-3">
+      <p class="text-xs text-slate-500 uppercase tracking-wide">Calories</p>
+      <p class="text-xl font-bold text-yellow-400">{{ macros.calories|floatformat:0 }}</p>
+      <p class="text-xs text-slate-500">kcal</p>
+    </div>
+    <div class="rounded-lg bg-slate-900 p-3">
+      <p class="text-xs text-slate-500 uppercase tracking-wide">Protein</p>
+      <p class="text-xl font-bold text-blue-400">{{ macros.protein_g|floatformat:1 }}</p>
+      <p class="text-xs text-slate-500">g</p>
+    </div>
+    <div class="rounded-lg bg-slate-900 p-3">
+      <p class="text-xs text-slate-500 uppercase tracking-wide">Carbs</p>
+      <p class="text-xl font-bold text-orange-400">{{ macros.carbs_g|floatformat:1 }}</p>
+      <p class="text-xs text-slate-500">g</p>
+    </div>
+    <div class="rounded-lg bg-slate-900 p-3">
+      <p class="text-xs text-slate-500 uppercase tracking-wide">Fat</p>
+      <p class="text-xl font-bold text-pink-400">{{ macros.fat_g|floatformat:1 }}</p>
+      <p class="text-xs text-slate-500">g</p>
+    </div>
+    {% endwith %}
+  </div>
+  {% else %}
+  <p class="text-slate-500 text-sm">Nutrition data not found in USDA database for this item.</p>
+  {% endif %}
+
+  <p class="text-xs text-slate-500">Nutritional values are per 100 g from the USDA FoodData Central database.</p>
+</div>

@@ -1,0 +1,12 @@
+<!-- Shown while the ML pipeline is running -->
+<div id="meal-{{ meal.id }}-status"
+     hx-get="{% url 'meal_status' meal.id %}"
+     hx-trigger="every 2s"
+     hx-swap="outerHTML"
+     class="flex items-center gap-3 rounded-xl bg-slate-800 border border-slate-700 p-4 text-sm text-slate-300">
+  <svg class="animate-spin h-5 w-5 text-brand flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+  </svg>
+  <span>Analysing your meal with AI… this takes a few seconds.</span>
+</div>

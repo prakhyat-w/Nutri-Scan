@@ -1,0 +1,21 @@
+/*
+ * NutriScan — custom CSS overrides
+ *
+ * Tailwind handles nearly everything via CDN classes.
+ * This file exists as a placeholder for any fine-tuned styles.
+ */
+
+/* HTMX indicator: hidden by default, shown during requests */
+.htmx-indicator {
+  display: none;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  display: flex;
+}
+
+/* Smooth fade for HTMX-swapped content */
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}

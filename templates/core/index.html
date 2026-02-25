@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}NutriScan — AI-Powered Food Diary{% endblock %}
+
+{% block content %}
+<section class="flex flex-col items-center text-center gap-8 py-16">
+  <div class="max-w-2xl">
+    <h1 class="text-5xl font-extrabold tracking-tight mb-4">
+      Know exactly what you eat. <span class="text-brand">Every meal.</span>
+    </h1>
+    <p class="text-slate-400 text-lg leading-relaxed">
+      Upload a photo of your meal and NutriScan's AI identifies the food and
+      fetches calories &amp; macros from the USDA database—automatically.
+    </p>
+  </div>
+
+  <div class="flex gap-4">
+    <a href="{% url 'register' %}"
+       class="rounded-xl bg-brand px-6 py-3 text-white font-semibold text-lg hover:bg-brand-dark transition shadow-lg">
+      Get started free →
+    </a>
+    <a href="{% url 'login' %}"
+       class="rounded-xl border border-slate-600 px-6 py-3 text-slate-300 font-semibold text-lg hover:border-slate-400 transition">
+      Log in
+    </a>
+  </div>
+
+  <!-- Feature grid -->
+  <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left w-full max-w-3xl">
+    {% for icon, title, desc in features %}
+    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+      <div class="text-3xl mb-3">{{ icon }}</div>
+      <h3 class="font-semibold text-white mb-1">{{ title }}</h3>
+      <p class="text-slate-400 text-sm">{{ desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

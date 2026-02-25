@@ -1,0 +1,9 @@
+<!-- Shown when analysis fails -->
+<div id="meal-{{ meal.id }}-status"
+     class="rounded-xl bg-red-950 border border-red-800 p-4 text-sm text-red-300 space-y-1">
+  <p class="font-semibold">⚠ Analysis failed</p>
+  {% if meal.error_message %}
+  <p class="text-red-400 text-xs">{{ meal.error_message }}</p>
+  {% endif %}
+  <p class="text-red-400 text-xs">Please try uploading a clearer photo of a single dish.</p>
+</div>

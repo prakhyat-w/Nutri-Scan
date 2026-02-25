@@ -1,0 +1,75 @@
+<!-- A single row in the recent meals list -->
+<div id="meal-row-{{ meal.id }}"
+     class="flex items-center gap-4 rounded-xl bg-slate-800 border border-slate-700 p-4">
+
+  <!-- Thumbnail -->
+  {% if meal.image_url %}
+  <img src="{{ meal.image_url }}" alt="{{ meal.detected_food }}"
+       class="h-14 w-14 rounded-lg object-cover flex-shrink-0 border border-slate-600" />
+  {% else %}
+  <div class="h-14 w-14 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0 text-2xl">🍽</div>
+  {% endif %}
+
+  <!-- Info -->
+  <div class="flex-1 min-w-0">
+    <p class="font-semibold capitalize truncate
+      {% if meal.status == 'done' %}text-white
+      {% elif meal.status == 'error' %}text-red-400
+      {% else %}text-slate-400{% endif %}">
+      {% if meal.status == 'done' %}
+        {{ meal.detected_food|default:"Unknown food" }}
+      {% elif meal.status == 'processing' %}
+        <span class="inline-flex items-center gap-1 text-sm text-slate-400">
+          <svg class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          Analysing…
+        </span>
+      {% else %}
+        Analysis failed
+      {% endif %}
+    </p>
+    <p class="text-slate-500 text-xs mt-0.5">{{ meal.logged_at|date:"M j, g:i A" }}</p>
+  </div>
+
+  <!-- Macros summary -->
+  {% if meal.macros_available %}
+  <div class="hidden sm:flex gap-4 text-center text-xs flex-shrink-0">
+    <div>
+      <p class="text-yellow-400 font-bold text-base">{{ meal.calories|floatformat:0 }}</p>
+      <p class="text-slate-500">kcal</p>
+    </div>
+    <div>
+      <p class="text-blue-400 font-bold text-base">{{ meal.protein_g|floatformat:0 }}g</p>
+      <p class="text-slate-500">protein</p>
+    </div>
+    <div>
+      <p class="text-orange-400 font-bold text-base">{{ meal.carbs_g|floatformat:0 }}g</p>
+      <p class="text-slate-500">carbs</p>
+    </div>
+    <div>
+      <p class="text-pink-400 font-bold text-base">{{ meal.fat_g|floatformat:0 }}g</p>
+      <p class="text-slate-500">fat</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Delete button -->
+  <form hx-post="{% url 'delete_meal' meal.id %}"
+        hx-target="#meal-row-{{ meal.id }}"
+        hx-swap="outerHTML"
+        hx-confirm="Remove this meal log?"
+        class="flex-shrink-0">
+    {% csrf_token %}
+    <button type="submit"
+            class="rounded-lg p-2 text-slate-500 hover:text-red-400 hover:bg-slate-700 transition"
+            title="Delete">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4m-4 0a1 1 0 00-1 1v1h6V4a1 1 0 00-1-1m-4 0h4" />
+      </svg>
+    </button>
+  </form>
+
+</div>

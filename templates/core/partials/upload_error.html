@@ -1,0 +1,12 @@
+<!-- Upload validation error -->
+<div class="rounded-xl bg-red-950 border border-red-800 p-4 text-sm text-red-300 space-y-1">
+  <p class="font-semibold">⚠ Upload error</p>
+  {% for field in form %}
+    {% for error in field.errors %}
+    <p class="text-red-400 text-xs">{{ field.label }}: {{ error }}</p>
+    {% endfor %}
+  {% endfor %}
+  {% for error in form.non_field_errors %}
+  <p class="text-red-400 text-xs">{{ error }}</p>
+  {% endfor %}
+</div>

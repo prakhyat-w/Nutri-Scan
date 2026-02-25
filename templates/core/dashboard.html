@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — NutriScan{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- ── Greeting ── -->
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Hey, {{ user.username }} 👋</h1>
+    <span class="text-slate-400 text-sm">{{ today|date:"l, N j" }}</span>
+  </div>
+
+  <!-- ── Today's totals ── -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    {% with t=today_totals %}
+    {% for label, val, unit, colour in today_stats %}
+    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 text-center">
+      <p class="text-xs uppercase tracking-widest text-slate-500 mb-1">{{ label }}</p>
+      <p class="text-3xl font-extrabold {{ colour }}">{{ val|default:"—" }}</p>
+      <p class="text-slate-500 text-xs mt-1">{{ unit }}</p>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+
+  <!-- ── Upload + 7-day chart ── -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Upload card -->
+    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6"
+         x-data="{ dragging: false }">
+      <h2 class="text-lg font-semibold mb-4">Log a Meal</h2>
+
+      <form id="upload-form"
+            hx-post="{% url 'upload_meal' %}"
+            hx-encoding="multipart/form-data"
+            hx-target="#meal-result-area"
+            hx-swap="innerHTML"
+            hx-indicator="#upload-spinner"
+            class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Drop zone -->
+        <label for="meal-photo-input"
+               class="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed
+                      cursor-pointer transition
+                      {% verbatim %}{{ dragging ? 'border-brand bg-green-950' : 'border-slate-700 hover:border-slate-500' }}{% endverbatim %}"
+               style="min-height:160px"
+               @dragover.prevent="dragging=true"
+               @dragleave.prevent="dragging=false"
+               @drop.prevent="dragging=false; $refs.photoInput.files = $event.dataTransfer.files">
+          <span class="text-4xl">📷</span>
+          <span class="text-slate-400 text-sm text-center px-4">
+            Drag &amp; drop a photo here, or click to select
+          </span>
+          <input id="meal-photo-input" name="photo" type="file" accept="image/*"
+                 x-ref="photoInput" class="sr-only"
+                 @change="$el.closest('label').querySelector('span:nth-child(2)').textContent = $el.files[0]?.name || 'Select photo'" />
+        </label>
+
+        <!-- Notes -->
+        <input type="text" name="notes" placeholder="Notes (optional)"
+               class="w-full rounded-lg bg-slate-800 border border-slate-700 px-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand" />
+
+        <button type="submit"
+                class="w-full rounded-xl bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark transition">
+          Analyse Meal
+        </button>
+      </form>
+
+      <!-- Spinner (shown by HTMX while uploading) -->
+      <div id="upload-spinner" class="htmx-indicator mt-4 flex items-center gap-3 text-slate-400 text-sm">
+        <svg class="animate-spin h-5 w-5 text-brand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+        Uploading &amp; analysing…
+      </div>
+
+      <!-- Result area — HTMX swaps partials here -->
+      <div id="meal-result-area" class="mt-4"></div>
+    </div>
+
+    <!-- 7-day calorie trend chart -->
+    <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+      <h2 class="text-lg font-semibold mb-4">7-Day Calorie Trend</h2>
+      <canvas id="calorieChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Recent meal log ── -->
+  <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6">
+    <h2 class="text-lg font-semibold mb-4">Recent Meals</h2>
+
+    {% if recent_logs %}
+    <div class="space-y-3" id="meal-log-list">
+      {% for meal in recent_logs %}
+        {% include "core/partials/meal_log_row.html" with meal=meal %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-slate-500 text-sm">No meals logged yet. Upload your first photo above!</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ── Chart.js init ── -->
+<script>
+(function () {
+  const labels = {{ chart_labels|safe }};
+  const data   = {{ chart_data|safe }};
+
+  const ctx = document.getElementById('calorieChart');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Calories (kcal)',
+        data,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.12)',
+        borderWidth: 2,
+        pointBackgroundColor: '#22c55e',
+        fill: true,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y} kcal`
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' }, beginAtZero: true }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}
