@@ -17,13 +17,18 @@ logger = logging.getLogger(__name__)
 
 _BASE_URL = "https://api.nal.usda.gov/fdc/v1"
 
-# Map USDA nutrient IDs to human-readable names
-_NUTRIENT_MAP = {
-    1008: "calories",      # Energy (kcal)
-    1003: "protein_g",     # Protein
-    1005: "carbs_g",       # Carbohydrate, by difference
-    1004: "fat_g",         # Total lipid (fat)
-    1079: "fiber_g",       # Fiber, total dietary
+# Map human-readable key → all USDA nutrient IDs that represent it.
+# Different USDA databases use different IDs for the same nutrient:
+#   Foundation foods  → 1008 (energy), 1003 (protein), 1005 (carbs), 1004 (fat), 1079 (fiber)
+#   SR Legacy         →  208 (energy),  203 (protein),  205 (carbs),  204 (fat),  291 (fiber)
+#   Survey (FNDDS)    → 2047 (energy), 2047 overlaps; protein=1003, carbs=1005
+# We check all known IDs and take the first value found.
+_NUTRIENT_MAP: dict[str, list[int]] = {
+    "calories":  [1008, 208, 2047],
+    "protein_g": [1003, 203],
+    "carbs_g":   [1005, 205],
+    "fat_g":     [1004, 204],
+    "fiber_g":   [1079, 291],
 }
 
 
@@ -78,11 +83,11 @@ def get_nutrition(food_name: str) -> Optional[Dict]:
     fdc_id = top.get("fdcId")
     raw_nutrients = top.get("foodNutrients", [])
 
-    # Build a lookup from nutrient id → value
-    nutrient_values: Dict[int, float] = {}
+    # Build a lookup from nutrient id → value covering all data-type variants
+    nutrient_values: dict[int, float] = {}
     for n in raw_nutrients:
         nid = n.get("nutrientId") or n.get("nutrient", {}).get("id")
-        val = n.get("value") or n.get("amount")
+        val = n.get("value") if n.get("value") is not None else n.get("amount")
         if nid and val is not None:
             nutrient_values[int(nid)] = float(val)
 
@@ -92,7 +97,18 @@ def get_nutrition(food_name: str) -> Optional[Dict]:
         "raw": top,
     }
 
-    for nid, key in _NUTRIENT_MAP.items():
-        result[key] = nutrient_values.get(nid)
+    # Try each known nutrient ID in priority order; use the first hit
+    for key, id_list in _NUTRIENT_MAP.items():
+        for nid in id_list:
+            if nid in nutrient_values:
+                result[key] = nutrient_values[nid]
+                break
+        else:
+            result[key] = None
 
+    logger.info(
+        "USDA result for '%s': cal=%s prot=%s carbs=%s fat=%s",
+        food_name, result.get("calories"), result.get("protein_g"),
+        result.get("carbs_g"), result.get("fat_g"),
+    )
     return result
