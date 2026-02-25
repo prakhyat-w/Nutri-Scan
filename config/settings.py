@@ -29,11 +29,25 @@ DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 _raw_hosts = os.environ.get("ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(",") if h.strip()] or ["*"]
 
-# CSRF trusted origins for HuggingFace Spaces domain
+# CSRF trusted origins — must cover every domain that can POST to this app:
+#   1. The Space's own shareable URL (dronesmasher-nutriscan.hf.space)
+#   2. huggingface.co itself (embeds the Space in an iframe on the Space page)
+#   3. *.hf.space wildcard (covers preview / direct-link variants)
+#   4. localhost for local dev
 CSRF_TRUSTED_ORIGINS = [
     f"https://{h}" for h in ALLOWED_HOSTS if not h.startswith("localhost")
 ]
-CSRF_TRUSTED_ORIGINS += ["http://localhost:7860", "http://127.0.0.1:7860"]
+CSRF_TRUSTED_ORIGINS += [
+    "https://huggingface.co",
+    "https://*.huggingface.co",
+    "https://*.hf.space",
+    "http://localhost:7860",
+    "http://127.0.0.1:7860",
+]
+
+# Allow the CSRF cookie to be sent in the HF iframe (cross-site context).
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True      # SameSite=None requires Secure
 
 # ---------------------------------------------------------------------------
 # Installed apps
