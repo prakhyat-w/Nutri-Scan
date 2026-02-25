@@ -164,6 +164,9 @@ LOGIN_URL = "/auth/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
 LOGOUT_REDIRECT_URL = "/"
 
+# Allow HuggingFace Spaces to embed the app in its iframe
+X_FRAME_OPTIONS = "ALLOWALL"
+
 # ---------------------------------------------------------------------------
 # Supabase Storage settings (accessed from core/storage.py)
 # ---------------------------------------------------------------------------
